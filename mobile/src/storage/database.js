@@ -73,7 +73,6 @@ export const initDatabase = async () => {
     `);
     return db;
   } catch (error) {
-    console.error('Error initializing database:', error);
     throw error;
   }
 };
