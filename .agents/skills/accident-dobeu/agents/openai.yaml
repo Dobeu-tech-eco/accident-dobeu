@@ -1,0 +1,6 @@
+interface:
+  display_name: "Accident Dobeu"
+  short_description: "Repo-specific patterns and workflows for accident-dobeu"
+  default_prompt: "Use the accident-dobeu repo skill to follow existing architecture, testing, and workflow conventions."
+policy:
+  allow_implicit_invocation: true
