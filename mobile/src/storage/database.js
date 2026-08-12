@@ -71,11 +71,8 @@ export const initDatabase = async () => {
       CREATE INDEX IF NOT EXISTS idx_reports_status ON reports(status);
       CREATE INDEX IF NOT EXISTS idx_sync_queue_status ON sync_queue(status);
     `);
-    
-    console.log('Database initialized successfully');
     return db;
   } catch (error) {
-    console.error('Error initializing database:', error);
     throw error;
   }
 };
@@ -222,3 +219,62 @@ export const audioStorage = {
   }
 };
 
+
+export const syncQueueStorage = {
+  async save(item) {
+    const db = getDatabase();
+    await db.runAsync(
+      `INSERT INTO sync_queue (id, entity_type, entity_id, operation, payload, status)
+       VALUES (?, ?, ?, ?, ?, 'pending')`,
+      [item.id, item.entity_type, item.entity_id, item.operation, item.payload]
+    );
+  },
+
+  async getPendingCount() {
+    const db = getDatabase();
+    const result = await db.getFirstAsync(
+      'SELECT COUNT(*) as count FROM sync_queue WHERE status = ?',
+      ['pending']
+    );
+    return result?.count || 0;
+  },
+
+  async getPending(limit = 10) {
+    const db = getDatabase();
+    return await db.getAllAsync(
+      'SELECT * FROM sync_queue WHERE status = ? ORDER BY created_at LIMIT ?',
+      ['pending', limit]
+    );
+  },
+
+  async updateStatus(id, status) {
+    const db = getDatabase();
+    await db.runAsync(
+      'UPDATE sync_queue SET status = ? WHERE id = ?',
+      [status, id]
+    );
+  },
+
+  async markCompleted(id) {
+    const db = getDatabase();
+    await db.runAsync(
+      'UPDATE sync_queue SET status = ?, processed_at = datetime("now") WHERE id = ?',
+      ['completed', id]
+    );
+  },
+
+  async markFailed(id, retryCount, errorMessage) {
+    const db = getDatabase();
+    await db.runAsync(
+      `UPDATE sync_queue
+       SET status = ?, retry_count = ?, error_message = ?
+       WHERE id = ?`,
+      [
+        retryCount >= 3 ? 'failed' : 'pending',
+        retryCount,
+        errorMessage,
+        id
+      ]
+    );
+  }
+};

@@ -221,18 +221,21 @@ process.on('uncaughtException', (error) => {
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (reason, promise) => {
   logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  gracefulShutdown('unhandledRejection');
 });
 
-httpServer.listen(PORT, () => {
-  logger.info(`Server running on port ${PORT}`);
-  logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
-  logger.info(`Process ID: ${process.pid}`);
-  
-  // Send ready signal to PM2
-  if (process.send) {
-    process.send('ready');
-  }
-});
+if (process.env.NODE_ENV !== 'test') {
+  httpServer.listen(PORT, () => {
+    logger.info(`Server running on port ${PORT}`);
+    logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    logger.info(`Process ID: ${process.pid}`);
+
+    // Send ready signal to PM2
+    if (process.send) {
+      process.send('ready');
+    }
+  });
+}
 
 // Database keep-alive query
 setInterval(async () => {
